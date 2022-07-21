@@ -4,7 +4,6 @@ namespace VladimirYuldashev\LaravelQueueRabbitMQ;
 
 use Exception;
 use Illuminate\Container\Container;
-use Illuminate\Contracts\Queue\Job;
 use Illuminate\Queue\Worker;
 use Illuminate\Queue\WorkerOptions;
 use PhpAmqpLib\Channel\AMQPChannel;
@@ -12,7 +11,6 @@ use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Message\AMQPMessage;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
 use Throwable;
-use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Jobs\RabbitMQJob;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\RabbitMQQueue;
 
 class Consumer extends Worker
@@ -74,6 +72,8 @@ class Consumer extends Worker
             null
         );
 
+        $jobClass = $connection->getJobClass();
+
         $this->channel->basic_consume(
             $queue,
             $this->consumerTag,
@@ -81,10 +81,10 @@ class Consumer extends Worker
             false,
             false,
             false,
-            function (AMQPMessage $message) use ($connection, $options, $connectionName, $queue): void {
+            function (AMQPMessage $message) use ($connection, $options, $connectionName, $queue, $jobClass): void {
                 $this->gotJob = true;
 
-                $job = new RabbitMQJob(
+                $job = new $jobClass(
                     $this->container,
                     $connection,
                     $message,
